@@ -1,5 +1,7 @@
 <?php
 
+$totalDeletions = 0;
+
 if(!function_exists("array_column")){
     function array_column($array, $column_value, $column_key = null){
     	$tempArray = [];
@@ -45,27 +47,30 @@ function deleteMultiSpams($folder, $trashFolder){
 	$emailFolder = $root . $folder;
 	$trashFolder = $root . $trashFolder;
 	$emails = formEmailArray($emailFolder);
+	global $totalDeletions;
 
 	$emailSubjects = array_column($emails, 1, 0);
 	$subjectCount = array_count_values($emailSubjects);
 	$repeatedSubjects = [];
 	foreach($subjectCount as $subject => $count){
 		if($count > 1){
+			$totalDeletions += $count;
 			echo "\t\tDELETED " . $count . " copies of: " . $subject . "\n";
 			array_push($repeatedSubjects, $subject);
 		}
 	}
 	$multiSpams = [];
 	$multiSpams = array_keys(array_intersect($emailSubjects, $repeatedSubjects));
-
 	if(count($multiSpams) > 0){
-		echo "\tFiles deleted on: " . date('Y / m (M) / d (l)  -  g:i A (G:i:s)') . "\n";
 		foreach($multiSpams as $fileName){
 			rename($emailFolder . $fileName,  $trashFolder . $fileName);
 		}
 	}
 }
 
+date_default_timezone_set('America/New_York');
+echo "\tFiles deleted on: " . date('Y / m (M) / d (l)  -  g:i A (G:i:s)') . "\n";
 deleteMultiSpams("/home/<MAIL FOLDER ON YOUR SERVER>/", "/home/<MAIL FOLDER ON YOUR SERVER>/.Trash/cur/");
+echo "\tTotal number of files deleted: " . $totalDeletions . "\n\n";
 
 ?>

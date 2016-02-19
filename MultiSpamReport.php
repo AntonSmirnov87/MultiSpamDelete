@@ -3,13 +3,14 @@
 function reportMultiSpams($file){
 	$root = $_SERVER['DOCUMENT_ROOT'];
 	$reportFile = $root . $file;
+	date_default_timezone_set('America/New_York');
 	echo "Report Sent: " . date('Y / m (M) / d (l)  -  g:i A (G:i:s)') . "\n\n";
 	if(is_file($reportFile)){
 		$reportContents = file_get_contents($reportFile);
 		echo $reportContents;
 		unlink($reportFile);
 	}else{
-		echo "Cannot find spam deletion report. Please contact your webmaster.";
+		echo "Cannot find spam deletion report. Please contact your Anton.";
 	}
 }
 
