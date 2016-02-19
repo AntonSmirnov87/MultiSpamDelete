@@ -51,7 +51,7 @@ function deleteMultiSpams($folder, $trashFolder){
 	$repeatedSubjects = [];
 	foreach($subjectCount as $subject => $count){
 		if($count > 1){
-			echo "DELETED " . $count . " copies of: " . $subject . "\n";
+			echo "\t\tDELETED " . $count . " copies of: " . $subject . "\n";
 			array_push($repeatedSubjects, $subject);
 		}
 	}
@@ -59,16 +59,13 @@ function deleteMultiSpams($folder, $trashFolder){
 	$multiSpams = array_keys(array_intersect($emailSubjects, $repeatedSubjects));
 
 	if(count($multiSpams) > 0){
+		echo "\tFiles deleted on: " . date('Y / m (M) / d (l)  -  g:i A (G:i:s)') . "\n";
 		foreach($multiSpams as $fileName){
 			rename($emailFolder . $fileName,  $trashFolder . $fileName);
 		}
-		echo "TOTAL:\n" . count($multiSpams) . " files deleted this hour.\n";
-	}else{
-		echo "No files deleted this hour.\n";
 	}
 }
 
-echo "\nNew Emails:\n";
 deleteMultiSpams("/home/<MAIL FOLDER ON YOUR SERVER>/", "/home/<MAIL FOLDER ON YOUR SERVER>/.Trash/cur/");
 
 ?>
