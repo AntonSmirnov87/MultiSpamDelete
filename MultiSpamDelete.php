@@ -35,32 +35,39 @@ function formEmailArray($emailFolder){
 					}
 				}
 				$emailEntry = [];
-				array_push($emailEntry, $fileName, $emailDate . "  -  " . $emailSubject);
+				array_push($emailEntry, $fileName, $emailDate, $emailSubject);
 				array_push($emails, $emailEntry);
 			}
 		}
 	}
 	return $emails;
 }
-function deleteMultiSpams($folder, $trashFolder){
+
+function deleteMultiSpams($folder, $trashFolder, $minuteTolerance){
+	global $totalDeletions;
+	$multiSpams = [];
 	$root = $_SERVER['DOCUMENT_ROOT'];
 	$emailFolder = $root . $folder;
 	$trashFolder = $root . $trashFolder;
 	$emails = formEmailArray($emailFolder);
-	global $totalDeletions;
-
-	$emailSubjects = array_column($emails, 1, 0);
-	$subjectCount = array_count_values($emailSubjects);
-	$repeatedSubjects = [];
-	foreach($subjectCount as $subject => $count){
-		if($count > 1){
-			$totalDeletions += $count;
-			echo "\t\tDELETED " . $count . " copies of: " . $subject . "\n";
-			array_push($repeatedSubjects, $subject);
+	$numEmails = count($emails);
+	for($i = 0; $i < $numEmails; $i++){
+		if(!in_array($emails[$i][0], $multiSpams)){
+			$numCopies = 1;
+			for($j = $i + 1; $j < $numEmails; $j++){
+				# If subjects are identical and date/times are within chosen tolerance minutes of each other
+				if($emails[$i][2] === $emails[$j][2] && isTimeWithinRange($emails[$i][1], $emails[$j][1], $minuteTolerance)){
+					$numCopies++;
+					array_push($multiSpams, $emails[$j][0]);
+				}
+			}
+			if($numCopies > 1){
+				array_push($multiSpams, $emails[$i][0]);
+				$totalDeletions += $numCopies;
+				echo "\t\tDELETED " . $numCopies . " copies of: " . $emails[$i][1] . " - " . $emails[$i][2] . "\n";
+			}
 		}
 	}
-	$multiSpams = [];
-	$multiSpams = array_keys(array_intersect($emailSubjects, $repeatedSubjects));
 	if(count($multiSpams) > 0){
 		foreach($multiSpams as $fileName){
 			rename($emailFolder . $fileName,  $trashFolder . $fileName);
@@ -68,9 +75,39 @@ function deleteMultiSpams($folder, $trashFolder){
 	}
 }
 
+function isTimeWithinRange($origTimeString, $compTimeString, $minuteRange){
+	$origTime = convertTimeToDecimal($origTimeString)[0];
+	$compTime = convertTimeToDecimal($compTimeString)[0];
+	$daysInMonth = convertTimeToDecimal($origTimeString)[1];
+
+	if(round(abs($origTime - $compTime), 10) <= round(($minuteRange / (17280 * $daysInMonth)), 10)){
+		return true;
+	}else{
+		return false;
+	}
+}
+
+function convertTimeToDecimal($inputTimeString){
+	$inputArray = explode(" ", $inputTimeString);
+	$year = $inputArray[3];
+	$leapYear = ($year % 4 === 0) ? 1 : 0;
+	$arrMonth = array("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+	$arrDaysInMonth = array(31,28 + $leapYear,31,30,31,30,31,31,30,31,30,31);
+	$monthString = $inputArray[2];
+	$monthIndex = array_search($monthString, $arrMonth);
+	$month = $monthIndex + 1;
+	$day = $inputArray[1];
+	$time = preg_split("/:/", $inputArray[4]);
+	$hour = $time[0];
+	$minute = $time[1];
+
+	$decTime = (((((((($minute / 60) + $hour) / 24) + $day) / $arrDaysInMonth[$monthIndex]) + $month) / 12) + $year);
+	return array($decTime, $arrDaysInMonth[$monthIndex]);
+}
+
 date_default_timezone_set('America/New_York');
 echo "\tFiles deleted on: " . date('Y / m (M) / d (l)  -  g:i A (G:i:s)') . "\n";
-deleteMultiSpams("/home/<MAIL FOLDER ON YOUR SERVER>/", "/home/<MAIL FOLDER ON YOUR SERVER>/.Trash/cur/");
+deleteMultiSpams("/home/<MAIL FOLDER ON YOUR SERVER>/", "/home/<MAIL FOLDER ON YOUR SERVER>/.Trash/cur/", 3);
 echo "\tTotal number of files deleted: " . $totalDeletions . "\n\n";
 
 ?>
