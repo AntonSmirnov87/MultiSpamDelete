@@ -10,7 +10,7 @@ function reportMultiSpams($file){
 		echo $reportContents;
 		unlink($reportFile);
 	}else{
-		echo "Cannot find spam deletion report. Please contact your Anton.";
+		echo "Cannot find spam deletion report. Please contact your webmaster.";
 	}
 }
 
